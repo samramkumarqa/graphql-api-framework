@@ -1,0 +1,9 @@
+# Directives: @include / @skip controlled by variables
+query CharacterWithOptionalOrigin($id: ID!, $withOrigin: Boolean!, $skipImage: Boolean!) {
+  character(id: $id) {
+    id
+    name
+    image @skip(if: $skipImage)
+    origin @include(if: $withOrigin) { name }
+  }
+}

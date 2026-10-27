@@ -1,0 +1,9 @@
+#import "fragments/CharacterFields.graphql"
+#import "fragments/PageInfo.graphql"
+
+query ListCharacters($page: Int, $filter: FilterCharacter) {
+  characters(page: $page, filter: $filter) {
+    info { ...PageInfo }
+    results { ...CharacterFields }
+  }
+}

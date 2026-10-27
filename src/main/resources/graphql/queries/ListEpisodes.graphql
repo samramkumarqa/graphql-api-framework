@@ -1,0 +1,8 @@
+#import "fragments/PageInfo.graphql"
+
+query ListEpisodes($page: Int, $filter: FilterEpisode) {
+  episodes(page: $page, filter: $filter) {
+    info { ...PageInfo }
+    results { id name air_date episode }
+  }
+}

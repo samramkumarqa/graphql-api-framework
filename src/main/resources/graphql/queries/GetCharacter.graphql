@@ -1,0 +1,10 @@
+#import "fragments/CharacterFields.graphql"
+
+query GetCharacter($id: ID!) {
+  character(id: $id) {
+    ...CharacterFields
+    origin { id name }
+    location { id name }
+    episode { id episode }
+  }
+}

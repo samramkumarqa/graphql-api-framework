@@ -1,0 +1,14 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<!-- No network: framework unit tests only -->
+<suite name="Offline">
+    <test name="Offline">
+        <groups>
+            <run>
+                <include name="offline"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="com.qa.tests.OperationLoaderTest"/>
+        </classes>
+    </test>
+</suite>

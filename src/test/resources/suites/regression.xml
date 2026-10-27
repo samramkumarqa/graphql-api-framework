@@ -1,0 +1,8 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="GraphQL Regression" parallel="classes" thread-count="4">
+    <test name="Rick and Morty GraphQL">
+        <packages>
+            <package name="com.qa.tests"/>
+        </packages>
+    </test>
+</suite>

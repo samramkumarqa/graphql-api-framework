@@ -1,0 +1,8 @@
+query IntrospectType($name: String!) {
+  __type(name: $name) {
+    name
+    kind
+    fields { name type { name kind ofType { name kind } } }
+    inputFields { name type { name kind } }
+  }
+}

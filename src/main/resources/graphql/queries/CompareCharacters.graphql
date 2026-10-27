@@ -1,0 +1,5 @@
+# Aliases: the same field twice in one request, under different names
+query CompareCharacters($first: ID!, $second: ID!) {
+  rick: character(id: $first) { id name species }
+  morty: character(id: $second) { id name species }
+}

@@ -1,0 +1,47 @@
+name: GraphQL Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '45 3 * * 1-5' # weekdays 09:15 IST: catches schema or data changes in the live API
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: GraphQL regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Offline checks
+        run: mvn -B test -Dsuite=offline
+
+      - name: Live API tests
+        run: mvn -B test
+
+      - name: Build Allure report
+        if: ${{ !cancelled() }}
+        run: mvn -B -q allure:report
+
+      - name: Upload reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: graphql-reports
+          path: |
+            target/site/allure-maven-plugin/
+            target/surefire-reports/
+          retention-days: 14
