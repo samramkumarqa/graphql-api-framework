@@ -12,8 +12,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 
 /**
- * GraphQL errors. This API (Apollo Server) rejects invalid documents and variables with HTTP 400 and an
- * "errors" array before running anything; a missing record is not an error at all, just null.
+ * GraphQL errors. The public endpoint is a gateway (Stellate) in front of an Apollo Server:
+ *  - the gateway rejects documents it can't parse (400) and queries over its depth/complexity limit (413);
+ *  - the origin rejects invalid fields and variables with 400 and a validation error;
+ *  - a missing record is not an error at all, just null.
+ * In every rejected case there is an "errors" array and no data.
  */
 public class ErrorHandlingTest {
 
@@ -34,11 +37,11 @@ public class ErrorHandlingTest {
         Assert.assertEquals(found.get(0).get("id"), "1");
     }
 
-    @Test(description = "Syntax error: 400 with a parse error")
+    @Test(description = "Unparseable document: rejected by the gateway with 400")
     public void syntaxError() {
         GraphQLResponse response = graphql.query("{ character(id: 1) { name ");
         Assert.assertEquals(response.status(), 400);
-        assertThat(response.firstErrorMessage(), containsString("Syntax Error"));
+        assertThat(response.firstErrorMessage(), containsString("did not contain a valid GraphQL request"));
         Assert.assertNull(response.raw().jsonPath().get("data"));
     }
 
@@ -64,12 +67,13 @@ public class ErrorHandlingTest {
         assertThat(response.firstErrorMessage(), containsString("$page"));
     }
 
-    @Test(description = "Queries nested deeper than 4 levels are rejected by the server's depth limit")
+    @Test(description = "Over-deep queries are rejected (the gateway's limit answers 413 before the origin's)")
     public void depthLimit() {
         String tooDeep = "{ character(id: 1) { episode { characters { episode { characters { name } } } } } }";
         GraphQLResponse response = graphql.query(tooDeep);
-        Assert.assertEquals(response.status(), 400);
-        assertThat(response.firstErrorMessage(), containsString("exceeds maximum operation depth of 4"));
+        Assert.assertEquals(response.status(), 413);
+        Assert.assertTrue(response.hasErrors(), "expected an errors array: " + response.raw().asString());
+        Assert.assertNull(response.raw().jsonPath().get("data"));
 
         // One level less is allowed
         graphql.query("{ character(id: 1) { episode { characters { episode { id } } } } }").assertOk();

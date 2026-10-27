@@ -58,7 +58,40 @@ public class GraphQLClient {
         return query(query, null);
     }
 
+    /**
+     * The public endpoint sits behind a rate-limiting gateway (Stellate) that answers 429 with a
+     * "retryAfter" in seconds. Wait that long and retry, a few times at most, as a well-behaved client should.
+     */
     private GraphQLResponse send(GraphQLRequest request) {
-        return new GraphQLResponse(given(spec).body(request).when().post());
+        GraphQLResponse response = new GraphQLResponse(given(spec).body(request).when().post());
+        for (int attempt = 1; attempt <= MAX_RATE_LIMIT_RETRIES && response.status() == 429; attempt++) {
+            sleepSeconds(retryAfterSeconds(response));
+            response = new GraphQLResponse(given(spec).body(request).when().post());
+        }
+        return response;
+    }
+
+    private static final int MAX_RATE_LIMIT_RETRIES = 3;
+
+    /** Retry-After header if present, else the gateway's extensions.stellate.details.rules[0].retryAfter, else 5s. */
+    static int retryAfterSeconds(GraphQLResponse response) {
+        String header = response.raw().getHeader("Retry-After");
+        if (header != null && header.trim().matches("\\d+")) {
+            return Integer.parseInt(header.trim());
+        }
+        Object fromBody = response.raw().jsonPath().get("errors[0].extensions.stellate.details.rules[0].retryAfter");
+        if (fromBody instanceof Number n) {
+            return n.intValue();
+        }
+        return 5;
+    }
+
+    private static void sleepSeconds(int seconds) {
+        try {
+            Thread.sleep(Math.min(Math.max(seconds, 1), 30) * 1000L);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while waiting out a rate limit", e);
+        }
     }
 }
